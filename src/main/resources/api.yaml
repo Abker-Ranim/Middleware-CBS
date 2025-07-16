@@ -4,7 +4,7 @@ info:
   description: API documentation for the banking middleware
   version: 1.0.0
 servers:
-  - url: http://localhost:8090
+  - url: http://localhost:8091
     description: Local development server
 paths:
   /api/consult-account:
