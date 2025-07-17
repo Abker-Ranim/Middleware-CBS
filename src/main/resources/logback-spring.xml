@@ -19,8 +19,11 @@
     </appender>
 
     <!-- Niveau global et association des appenders -->
-    <root level="debug">
+    <root level="INFO">
         <appender-ref ref="CONSOLE" />
-        <appender-ref ref="OTEL" />
     </root>
+
+    <logger name="tn.ucar.enicar" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
 </configuration>
