@@ -24,6 +24,6 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Middleware API")
                         .version("1.0")
-                        .description("API documentation for the banking middleware loaded from YAML"));
+                        .description("API documentation for the banking middleware "));
     }
 }
