@@ -29,46 +29,48 @@ public class MiddlewareController {
         this.transferRequestRepository = transferRequestRepository;
         this.transferResponseRepository = transferResponseRepository;
     }
-
+// Récupère les informations d'un compte
     @GetMapping("/consult-account")
-    public ResponseEntity<Account> consultAccount(@RequestParam String id) {
+    public ResponseEntity<?> consultAccount(@RequestParam String id) {
         logger.debug("Consulting account with id: {}", id);
         long startTime = System.currentTimeMillis();
-        Account account = cbsClient.getAccount(id);
+        ResponseEntity<?> responseEntity = cbsClient.getAccount(id);
         long executionTime = System.currentTimeMillis() - startTime;
 
+        Object body = responseEntity.getBody();
         ApiLog log = new ApiLog();
         log.setEndpoint("/consult-account");
-        log.setStatus(account != null ? "SUCCESS" : "FAILURE");
+        log.setStatus(responseEntity.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILURE");
         log.setExecutionTime(executionTime);
         log.setTimestamp(LocalDateTime.now().toString());
         apiLogRepository.save(log);
 
-        return ResponseEntity.ok(account);
+        return responseEntity;
     }
-
+// Récupère les informations d'un client
     @GetMapping("/consult-customer")
-    public ResponseEntity<Customer> consultCustomer(@RequestParam String id) {
+    public ResponseEntity<?> consultCustomer(@RequestParam String id) {
         logger.debug("Consulting customer with id: {}", id);
         long startTime = System.currentTimeMillis();
-        Customer customer = cbsClient.getCustomer(id);
+        ResponseEntity<?> responseEntity = cbsClient.getCustomer(id);
         long executionTime = System.currentTimeMillis() - startTime;
 
+        Object body = responseEntity.getBody();
         ApiLog log = new ApiLog();
         log.setEndpoint("/consult-customer");
-        log.setStatus(customer != null ? "SUCCESS" : "FAILURE");
+        log.setStatus(responseEntity.getStatusCode().is2xxSuccessful() ? "SUCCESS" : "FAILURE");
         log.setExecutionTime(executionTime);
         log.setTimestamp(LocalDateTime.now().toString());
         apiLogRepository.save(log);
 
-        return ResponseEntity.ok(customer);
+        return responseEntity;
     }
-
+// Récupère l'historique des transactions d'un compte
     @GetMapping("/consult-history")
-    public ResponseEntity<?> consultHistory(@RequestParam String id) { // Changement à ResponseEntity<?>
+    public ResponseEntity<?> consultHistory(@RequestParam String id) {
         logger.debug("Consulting history for account with id: {}", id);
         long startTime = System.currentTimeMillis();
-        ResponseEntity<?> responseEntity = cbsClient.getHistory(id); // Utilise la nouvelle méthode
+        ResponseEntity<?> responseEntity = cbsClient.getHistory(id);
         long executionTime = System.currentTimeMillis() - startTime;
 
         Object body = responseEntity.getBody();
@@ -79,61 +81,34 @@ public class MiddlewareController {
         log.setTimestamp(LocalDateTime.now().toString());
         apiLogRepository.save(log);
 
-        return responseEntity; // Retourne la réponse telle quelle
+        return responseEntity;
     }
 
+
+// Effectue un transfert d'argent entre deux comptes
     @PostMapping("/do-transfer")
     public ResponseEntity<TransferResponse> doTransfer(@RequestBody TransferRequest request) {
         logger.debug("Processing transfer: {}", request);
         long startTime = System.currentTimeMillis();
 
-        TransferResponse response;
-        try {
-            response = cbsClient.doTransfer(
-                    request.getFromAccountId(),
-                    request.getToAccountId(),
-                    request.getAmount()
-            );
-        } catch (Exception e) {
-            logger.error("Error during transfer: {}", e.getMessage());
-            // Remplacer transferRequestRepository par transferResponseRepository
-            TransferResponse errorResponse = new TransferResponse();
-            errorResponse.setStatus("error");
-            errorResponse.setMessage("Ce transfert n'a pas été effectué en raison d'une erreur : " + e.getMessage());
-            transferResponseRepository.save(errorResponse); // Sauvegarde la réponse d'erreur
-            ApiLog log = new ApiLog();
-            log.setEndpoint("/do-transfer");
-            log.setStatus("FAILURE");
-            log.setExecutionTime(System.currentTimeMillis() - startTime);
-            log.setTimestamp(LocalDateTime.now().toString());
-            apiLogRepository.save(log);
-            return ResponseEntity.status(400).body(errorResponse);
-        }
+        TransferResponse response = cbsClient.doTransfer(
+                request.getFromAccountId(),
+                request.getToAccountId(),
+                request.getAmount()
+        );
         long executionTime = System.currentTimeMillis() - startTime;
 
-        // Vérifier si la réponse indique une erreur
-        if (response != null && "error".equalsIgnoreCase(response.getStatus())) {
-            transferResponseRepository.save(response); // Sauvegarde la réponse avec status "error"
-            ApiLog log = new ApiLog();
-            log.setEndpoint("/do-transfer");
-            log.setStatus("FAILURE");
-            log.setExecutionTime(executionTime);
-            log.setTimestamp(LocalDateTime.now().toString());
-            apiLogRepository.save(log);
-            return ResponseEntity.status(400).body(response);
-        }
-
-        String status = (response != null && "success".equalsIgnoreCase(response.getStatus())) ? "SUCCESS" : "FAILURE";
-
-        transferResponseRepository.save(response); // Sauvegarde la réponse (succès ou échec non exceptionnel)
+        transferResponseRepository.save(response);
 
         ApiLog log = new ApiLog();
         log.setEndpoint("/do-transfer");
-        log.setStatus(status);
+        log.setStatus("error".equalsIgnoreCase(response.getStatus()) ? "FAILURE" : "SUCCESS");
         log.setExecutionTime(executionTime);
         log.setTimestamp(LocalDateTime.now().toString());
         apiLogRepository.save(log);
 
-        return ResponseEntity.ok(response != null ? response : new TransferResponse());
+        return "error".equalsIgnoreCase(response.getStatus())
+                ? ResponseEntity.status(400).body(response)
+                : ResponseEntity.ok(response);
     }
 }
