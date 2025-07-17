@@ -19,15 +19,67 @@ public class CbsClient {
         this.cbsBaseUrl = cbsBaseUrl;
     }
 
-    public Account getAccount(String accountId) {
-        return restTemplate.getForObject(cbsBaseUrl + "/account/{id}", Account.class, accountId);
+
+// Récupère les informations d'un compte par son ID
+    public ResponseEntity<Object> getAccount(String accountId) {
+        String url = cbsBaseUrl + "/account/{id}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Object> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Object.class,
+                    accountId
+            );
+            Object body = response.getBody();
+            if (body instanceof Account) {
+                return ResponseEntity.ok((Account) body);
+            }
+            return response;
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching account: " + e.getMessage(), e);
+        }
     }
 
-    public Customer getCustomer(String customerId) {
-        return restTemplate.getForObject(cbsBaseUrl + "/customer/{id}", Customer.class, customerId);
+
+    // Récupère les informations d'un client par son ID
+    public ResponseEntity<Object> getCustomer(String customerId) {
+        String url = cbsBaseUrl + "/customer/{id}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Object> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Object.class,
+                    customerId
+            );
+            Object body = response.getBody();
+            if (body instanceof Customer) {
+                return ResponseEntity.ok((Customer) body);
+            }
+            return response;
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching customer: " + e.getMessage(), e);
+        }
     }
 
-    public ResponseEntity<Object> getHistory(String accountId) { // Changement de retour à ResponseEntity<Object>
+
+// récupère l'historique des transactions d'un compte
+    public ResponseEntity<Object> getHistory(String accountId) {
         String url = cbsBaseUrl + "/history/{id}";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -39,30 +91,22 @@ public class CbsClient {
                     url,
                     HttpMethod.GET,
                     entity,
-                    Object.class, // Retourne un objet générique pour analyser la réponse
+                    Object.class,
                     accountId
             );
-            if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("{\"error\": \"No history found for this account\"}");
-            }
             Object body = response.getBody();
             if (body instanceof List) {
                 return ResponseEntity.ok(new TransactionHistory((List<Transaction>) body));
             }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("{\"error\": \"Unexpected response format from CBS\"}");
+            return response;
         } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("{\"error\": \"No history found for this account\"}");
-            }
-            throw e;
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
             throw new RuntimeException("Error fetching history: " + e.getMessage(), e);
         }
     }
 
+    // Effectue un transfert entre deux comptes
     public TransferResponse doTransfer(String fromAccountId, String toAccountId, double amount) {
         String url = cbsBaseUrl + "/transfer";
         HttpHeaders headers = new HttpHeaders();
@@ -99,5 +143,4 @@ public class CbsClient {
         } catch (Exception e) {
             throw new RuntimeException("Unexpected error during transfer: " + e.getMessage(), e);
         }
-    }
-}
+    }}
