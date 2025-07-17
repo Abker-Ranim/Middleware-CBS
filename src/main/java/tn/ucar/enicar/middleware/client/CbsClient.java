@@ -1,14 +1,13 @@
 package tn.ucar.enicar.middleware.client;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import tn.ucar.enicar.middleware.model.*;
-import org.springframework.http.HttpHeaders;
+
+import java.util.List;
 
 @Component
 public class CbsClient {
@@ -28,14 +27,46 @@ public class CbsClient {
         return restTemplate.getForObject(cbsBaseUrl + "/customer/{id}", Customer.class, customerId);
     }
 
-    public TransactionHistory getHistory(String accountId) {
-        return restTemplate.getForObject(cbsBaseUrl + "/history/{id}", TransactionHistory.class, accountId);
+    public ResponseEntity<Object> getHistory(String accountId) { // Changement de retour à ResponseEntity<Object>
+        String url = cbsBaseUrl + "/history/{id}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Object> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Object.class, // Retourne un objet générique pour analyser la réponse
+                    accountId
+            );
+            if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("{\"error\": \"No history found for this account\"}");
+            }
+            Object body = response.getBody();
+            if (body instanceof List) {
+                return ResponseEntity.ok(new TransactionHistory((List<Transaction>) body));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\": \"Unexpected response format from CBS\"}");
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("{\"error\": \"No history found for this account\"}");
+            }
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching history: " + e.getMessage(), e);
+        }
     }
 
     public TransferResponse doTransfer(String fromAccountId, String toAccountId, double amount) {
         String url = cbsBaseUrl + "/transfer";
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         TransferRequest requestBody = new TransferRequest();
         requestBody.setFromAccountId(fromAccountId);
@@ -47,19 +78,26 @@ public class CbsClient {
         try {
             ResponseEntity<TransferResponse> response = restTemplate.exchange(
                     url,
-                    org.springframework.http.HttpMethod.POST,
+                    HttpMethod.POST,
                     requestEntity,
                     TransferResponse.class
             );
-            return response.getBody();
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                TransferResponse errorResponse = new TransferResponse();
-                errorResponse.setStatus("error");
-                String errorMessage = e.getResponseBodyAsString().replaceAll("[{}\"]", "").trim();
-                return errorResponse;
+            TransferResponse body = response.getBody();
+            if (body != null && "error".equalsIgnoreCase(body.getStatus())) {
+                throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Transfer failed: " + (body.getMessage() != null ? body.getMessage() : "Unknown error"));
             }
-            throw e;
+            return body;
+        } catch (HttpClientErrorException e) {
+            TransferResponse errorResponse = new TransferResponse();
+            errorResponse.setStatus("error");
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                errorResponse.setMessage(e.getResponseBodyAsString().replaceAll("[{}\"]", "").trim());
+            } else {
+                errorResponse.setMessage("Server error: " + e.getStatusCode());
+            }
+            return errorResponse;
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error during transfer: " + e.getMessage(), e);
         }
     }
 }
