@@ -107,15 +107,14 @@ public class CbsClient {
     }
 
     // Effectue un transfert entre deux comptes
+
+    // Effectue un transfert entre deux comptes
     public TransferResponse doTransfer(String fromAccountId, String toAccountId, double amount) {
         String url = cbsBaseUrl + "/transfer";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        TransferRequest requestBody = new TransferRequest();
-        requestBody.setFromAccountId(fromAccountId);
-        requestBody.setToAccountId(toAccountId);
-        requestBody.setAmount(amount);
+        TransferRequest requestBody = new TransferRequest(fromAccountId, toAccountId, amount);
 
         HttpEntity<TransferRequest> requestEntity = new HttpEntity<>(requestBody, headers);
 
@@ -126,21 +125,22 @@ public class CbsClient {
                     requestEntity,
                     TransferResponse.class
             );
-            TransferResponse body = response.getBody();
-            if (body != null && "error".equalsIgnoreCase(body.getStatus())) {
-                throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Transfer failed: " + (body.getMessage() != null ? body.getMessage() : "Unknown error"));
-            }
-            return body;
+            return response.getBody(); // Retourne la réponse brute du CBS
         } catch (HttpClientErrorException e) {
-            TransferResponse errorResponse = new TransferResponse();
-            errorResponse.setStatus("error");
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                errorResponse.setMessage(e.getResponseBodyAsString().replaceAll("[{}\"]", "").trim());
-            } else {
-                errorResponse.setMessage("Server error: " + e.getStatusCode());
-            }
-            return errorResponse;
+            // Tente de mapper la réponse d'erreur du CBS
+            return e.getResponseBodyAs(TransferResponse.class);
         } catch (Exception e) {
-            throw new RuntimeException("Unexpected error during transfer: " + e.getMessage(), e);
+            return null; // Ou une gestion d'erreur spécifique si nécessaire
         }
-    }}
+    }
+
+
+
+
+
+
+
+
+
+
+    }
