@@ -1,18 +1,12 @@
 package tn.ucar.enicar.middleware.controller;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.ucar.enicar.middleware.client.CbsClient;
 import tn.ucar.enicar.middleware.model.*;
 import tn.ucar.enicar.middleware.repository.TransferRecordRepository;
-import tn.ucar.enicar.middleware.repository.TransferRequestRepository;
 
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api")
@@ -20,46 +14,31 @@ public class MiddlewareController {
 
     private static final Logger logger = LoggerFactory.getLogger(MiddlewareController.class);
     private final CbsClient cbsClient;
-    private final TransferRequestRepository transferRequestRepository;
     private final TransferRecordRepository transferRecordRepository;
 
-    public MiddlewareController(CbsClient cbsClient,
-                                TransferRequestRepository transferRequestRepository,
-                                TransferRecordRepository transferRecordRepository) {
+    public MiddlewareController(CbsClient cbsClient, TransferRecordRepository transferRecordRepository) {
         this.cbsClient = cbsClient;
-        this.transferRequestRepository = transferRequestRepository;
         this.transferRecordRepository = transferRecordRepository;
     }
 
     // Récupère les informations d'un compte
     @GetMapping("/consult-account")
     public ResponseEntity<?> consultAccount(@RequestParam String id) {
-        logger.debug("Consulting account with id: {}", id);
-        long startTime = System.currentTimeMillis();
         ResponseEntity<?> responseEntity = cbsClient.getAccount(id);
-        long executionTime = System.currentTimeMillis() - startTime;
-
         return responseEntity;
     }
 
     // Récupère les informations d'un client
     @GetMapping("/consult-customer")
     public ResponseEntity<?> consultCustomer(@RequestParam String id) {
-        logger.debug("Consulting customer with id: {}", id);
-        long startTime = System.currentTimeMillis();
         ResponseEntity<?> responseEntity = cbsClient.getCustomer(id);
-        long executionTime = System.currentTimeMillis() - startTime;
-
         return responseEntity;
     }
 
     // Récupère l'historique des transactions d'un compte
     @GetMapping("/consult-history")
     public ResponseEntity<?> consultHistory(@RequestParam String id) {
-        logger.debug("Consulting history for account with id: {}", id);
-        long startTime = System.currentTimeMillis();
         ResponseEntity<?> responseEntity = cbsClient.getHistory(id);
-        long executionTime = System.currentTimeMillis() - startTime;
 
         return responseEntity;
     }
@@ -67,8 +46,6 @@ public class MiddlewareController {
     // Effectue un transfert d'argent entre deux comptes
     @PostMapping("/do-transfer")
     public ResponseEntity<TransferResponse> doTransfer(@RequestBody TransferRequest request) {
-        logger.debug("Processing transfer: {}", request);
-        long startTime = System.currentTimeMillis();
 
         // Appel au CBS pour effectuer le transfert
         TransferResponse response = cbsClient.doTransfer(
@@ -76,7 +53,6 @@ public class MiddlewareController {
                 request.getToAccountId(),
                 request.getAmount()
         );
-        long executionTime = System.currentTimeMillis() - startTime;
 
         // Enregistrement dans MongoDB uniquement si le transfert réussit
         if ("success".equalsIgnoreCase(response.getStatus())) {
