@@ -1,5 +1,4 @@
 package tn.ucar.enicar.middleware.client;
-
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -34,24 +33,19 @@ public class CbsClient {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            ResponseEntity<Object> response = restTemplate.exchange(
-                    url, HttpMethod.GET, entity, Object.class, accountId
-            );
-            span.setAttribute("http.status_code", response.getStatusCodeValue());
-            if (response.getStatusCode().is2xxSuccessful()) {
-                span.setStatus(StatusCode.OK);
-            } else {
-                span.setStatus(StatusCode.ERROR);
+            ResponseEntity<Object> response;
+            try {
+                response = restTemplate.exchange(
+                        url, HttpMethod.GET, entity, Object.class, accountId
+                );
+            } catch (HttpClientErrorException e) {
+                response = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
             }
+
+            span.setAttribute("http.status_code", response.getStatusCodeValue());
+            span.setStatus(response.getStatusCode().is2xxSuccessful() ? StatusCode.OK : StatusCode.ERROR);
+
             return response;
-        } catch (HttpClientErrorException e) {
-            span.setAttribute("http.status_code", e.getStatusCode().value());
-            span.setStatus(StatusCode.ERROR);
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            span.recordException(e);
-            span.setStatus(StatusCode.ERROR);
-            throw new RuntimeException("Error fetching account: " + e.getMessage(), e);
         } finally {
             span.end();
         }
@@ -65,28 +59,19 @@ public class CbsClient {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            ResponseEntity<Object> response = restTemplate.exchange(
-                    url, HttpMethod.GET, entity, Object.class, customerId
-            );
+            ResponseEntity<Object> response;
+            try {
+                response = restTemplate.exchange(
+                        url, HttpMethod.GET, entity, Object.class, customerId
+                );
+            } catch (HttpClientErrorException e) {
+                response = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+            }
+
             span.setAttribute("http.status_code", response.getStatusCodeValue());
-            if (response.getStatusCode().is2xxSuccessful()) {
-                span.setStatus(StatusCode.OK);
-            } else {
-                span.setStatus(StatusCode.ERROR);
-            }
-            Object body = response.getBody();
-            if (body instanceof Customer) {
-                return ResponseEntity.ok((Customer) body);
-            }
+            span.setStatus(response.getStatusCode().is2xxSuccessful() ? StatusCode.OK : StatusCode.ERROR);
+
             return response;
-        } catch (HttpClientErrorException e) {
-            span.setAttribute("http.status_code", e.getStatusCode().value());
-            span.setStatus(StatusCode.ERROR);
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            span.recordException(e);
-            span.setStatus(StatusCode.ERROR);
-            throw new RuntimeException("Error fetching customer: " + e.getMessage(), e);
         } finally {
             span.end();
         }
@@ -100,28 +85,19 @@ public class CbsClient {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            ResponseEntity<Object> response = restTemplate.exchange(
-                    url, HttpMethod.GET, entity, Object.class, accountId
-            );
+            ResponseEntity<Object> response;
+            try {
+                response = restTemplate.exchange(
+                        url, HttpMethod.GET, entity, Object.class, accountId
+                );
+            } catch (HttpClientErrorException e) {
+                response = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+            }
+
             span.setAttribute("http.status_code", response.getStatusCodeValue());
-            if (response.getStatusCode().is2xxSuccessful()) {
-                span.setStatus(StatusCode.OK);
-            } else {
-                span.setStatus(StatusCode.ERROR);
-            }
-            Object body = response.getBody();
-            if (body instanceof List) {
-                return ResponseEntity.ok(new TransactionHistory((List<Transaction>) body));
-            }
+            span.setStatus(response.getStatusCode().is2xxSuccessful() ? StatusCode.OK : StatusCode.ERROR);
+
             return response;
-        } catch (HttpClientErrorException e) {
-            span.setAttribute("http.status_code", e.getStatusCode().value());
-            span.setStatus(StatusCode.ERROR);
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            span.recordException(e);
-            span.setStatus(StatusCode.ERROR);
-            throw new RuntimeException("Error fetching history: " + e.getMessage(), e);
         } finally {
             span.end();
         }
