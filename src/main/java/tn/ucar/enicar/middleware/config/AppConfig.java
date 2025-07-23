@@ -23,8 +23,8 @@ public class AppConfig {
     }
 
     @Bean
-    public OpenTelemetry openTelemetry(
-            TraceRecordRepository traceRecordRepository) {
+    public OpenTelemetry openTelemetry(TraceRecordRepository traceRecordRepository) {
+        //Définit l’exportateur qui enregistre les traces dans MongoDB
         SpanExporter mongoExporter = new MongoSpanExporter(traceRecordRepository);
 
         Resource resource = Resource.getDefault()
@@ -39,6 +39,7 @@ public class AppConfig {
                 .build();
     }
 
+    //Fournit un traceur pour CbsClient
     @Bean
     public Tracer tracer(OpenTelemetry openTelemetry) {
         return openTelemetry.getTracer("middleware-api");
