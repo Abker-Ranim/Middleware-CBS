@@ -32,20 +32,12 @@ public class MongoSpanExporter implements SpanExporter {
 
     @Override
     public CompletableResultCode export(Collection<SpanData> spans) {
+        //Boucle sur chaque SpanData dans la collection spans
         for (SpanData span : spans) {
             try {
-                // Extraire le contexte de la span
-                SpanContext spanContext = span.getSpanContext();
-                String traceId = spanContext.getTraceId();
-                String spanId = spanContext.getSpanId();
-
-                // Définir manuellement les identifiants dans le MDC pour les logs
-                MDC.put("trace_id", traceId);
-                MDC.put("span_id", spanId);
-
                 TraceRecord record = new TraceRecord();
-                record.setTraceId(traceId);
-                record.setSpanId(spanId);
+                record.setTraceId(span.getTraceId());
+                record.setSpanId(span.getSpanId());
                 record.setName(span.getName());
                 record.setStartTime(Instant.ofEpochSecond(span.getStartEpochNanos() / 1_000_000_000, (int) (span.getStartEpochNanos() % 1_000_000_000)));
                 record.setEndTime(Instant.ofEpochSecond(span.getEndEpochNanos() / 1_000_000_000, (int) (span.getEndEpochNanos() % 1_000_000_000)));
@@ -60,6 +52,7 @@ public class MongoSpanExporter implements SpanExporter {
                 record.setServiceName("middleware-api");
 
                 span.getAttributes().forEach((key, value) -> {
+                    logger.debug("Attribute: {} = {}", key.getKey(), value);
                     switch (key.getKey()) {
                         case "http.method":
                             record.setHttpMethod(value.toString());
@@ -78,27 +71,22 @@ public class MongoSpanExporter implements SpanExporter {
                 });
 
                 traceRecordRepository.save(record);
-                logger.info("Saved trace record with status: {}", record.getStatus()); // Supprimé traceId et spanId
+                logger.info("Saved trace record with traceId: {} and spanId: {} and status: {}", span.getTraceId(), span.getSpanId(), record.getStatus());
             } catch (Exception e) {
                 logger.error("Failed to save trace record: {}", e.getMessage(), e);
-            } finally {
-                // Nettoyer le MDC après chaque span
-                MDC.remove("trace_id");
-                MDC.remove("span_id");
             }
         }
         return CompletableResultCode.ofSuccess();
     }
 
-    @Override
-    public CompletableResultCode flush() {
-        logger.info("Flushing MongoSpanExporter");
-        return CompletableResultCode.ofSuccess();
-    }
 
     @Override
+    public CompletableResultCode flush() {
+        return CompletableResultCode.ofSuccess();
+    }
+//Ferme proprement l’exportateur
+    @Override
     public CompletableResultCode shutdown() {
-        logger.info("Shutting down MongoSpanExporter");
         return CompletableResultCode.ofSuccess();
     }
 }
