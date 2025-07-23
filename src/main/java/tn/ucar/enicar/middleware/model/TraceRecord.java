@@ -12,7 +12,6 @@ public class TraceRecord {
     private String id;
     private String traceId;
     private String spanId;
-    private String parentSpanId;
     private String name;
     private Instant startTime;
     private Instant endTime;
