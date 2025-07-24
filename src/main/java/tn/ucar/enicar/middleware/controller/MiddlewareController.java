@@ -1,11 +1,15 @@
 package tn.ucar.enicar.middleware.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.ucar.enicar.middleware.client.CbsClient;
 import tn.ucar.enicar.middleware.model.*;
+import tn.ucar.enicar.middleware.repository.TraceRecordRepository;
 import tn.ucar.enicar.middleware.repository.TransferRecordRepository;
+
+import java.util.List;
 
 
 @RestController
@@ -15,10 +19,12 @@ public class MiddlewareController {
     private static final Logger logger = LoggerFactory.getLogger(MiddlewareController.class);
     private final CbsClient cbsClient;
     private final TransferRecordRepository transferRecordRepository;
+    private final TraceRecordRepository traceRecordRepository;
 
-    public MiddlewareController(CbsClient cbsClient, TransferRecordRepository transferRecordRepository) {
+    public MiddlewareController(CbsClient cbsClient, TransferRecordRepository transferRecordRepository ,TraceRecordRepository traceRecordRepository) {
         this.cbsClient = cbsClient;
         this.transferRecordRepository = transferRecordRepository;
+        this.traceRecordRepository = traceRecordRepository;
     }
 
     // Récupère les informations d'un compte
@@ -69,5 +75,12 @@ public class MiddlewareController {
         return "success".equalsIgnoreCase(response.getStatus())
                 ? ResponseEntity.ok(response)
                 : ResponseEntity.status(400).body(response);
+    }
+
+// Récupère l'historique des transactions
+    @GetMapping("/traces")
+    public ResponseEntity<List<TraceRecord>> getTraces() {
+        List<TraceRecord> traces = traceRecordRepository.findAll(); // Récupère tous les enregistrements
+        return ResponseEntity.ok(traces);
     }
 }
