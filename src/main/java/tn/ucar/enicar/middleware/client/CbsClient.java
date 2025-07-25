@@ -1,4 +1,5 @@
 package tn.ucar.enicar.middleware.client;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -8,9 +9,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import tn.ucar.enicar.middleware.model.*;
-
-import java.util.List;
+import tn.ucar.enicar.middleware.model.TransferRecord;
+import tn.ucar.enicar.middleware.model.TransferRequest;
 
 @Component
 public class CbsClient {
@@ -26,7 +26,7 @@ public class CbsClient {
     }
 
     public ResponseEntity<Object> getAccount(String accountId) {
-        Span span = tracer.spanBuilder("CbsClient.getAccount").startSpan();
+        Span span = tracer.spanBuilder("GetAccount").startSpan();
         try (var scope = span.makeCurrent()) {
             String url = cbsBaseUrl + "/account/{id}";
             HttpHeaders headers = new HttpHeaders();
@@ -52,7 +52,7 @@ public class CbsClient {
     }
 
     public ResponseEntity<Object> getCustomer(String customerId) {
-        Span span = tracer.spanBuilder("CbsClient.getCustomer").startSpan();
+        Span span = tracer.spanBuilder("GetCustomer").startSpan();
         try (var scope = span.makeCurrent()) {
             String url = cbsBaseUrl + "/customer/{id}";
             HttpHeaders headers = new HttpHeaders();
@@ -78,7 +78,7 @@ public class CbsClient {
     }
 
     public ResponseEntity<Object> getHistory(String accountId) {
-        Span span = tracer.spanBuilder("CbsClient.getHistory").startSpan();
+        Span span = tracer.spanBuilder("GetHistory").startSpan();
         try (var scope = span.makeCurrent()) {
             String url = cbsBaseUrl + "/history/{id}";
             HttpHeaders headers = new HttpHeaders();
@@ -102,9 +102,8 @@ public class CbsClient {
             span.end();
         }
     }
-
-    public TransferResponse doTransfer(String fromAccountId, String toAccountId, double amount) {
-        Span span = tracer.spanBuilder("CbsClient.doTransfer").startSpan();
+    public ResponseEntity<Object> doTransfer(String fromAccountId, String toAccountId, double amount) {
+        Span span = tracer.spanBuilder("DoTransfer").startSpan();
         try (var scope = span.makeCurrent()) {
             String url = cbsBaseUrl + "/transfer";
             HttpHeaders headers = new HttpHeaders();
@@ -113,24 +112,23 @@ public class CbsClient {
             TransferRequest requestBody = new TransferRequest(fromAccountId, toAccountId, amount);
             HttpEntity<TransferRequest> requestEntity = new HttpEntity<>(requestBody, headers);
 
-            ResponseEntity<TransferResponse> response = restTemplate.exchange(
-                    url, HttpMethod.POST, requestEntity, TransferResponse.class
-            );
-            span.setAttribute("http.status_code", response.getStatusCodeValue());
-            if (response.getStatusCode().is2xxSuccessful()) {
-                span.setStatus(StatusCode.OK);
-            } else {
-                span.setStatus(StatusCode.ERROR);
+            ResponseEntity<Object> response;
+            try {
+                response = restTemplate.exchange(
+                        url, HttpMethod.POST, requestEntity, Object.class
+                );
+            } catch (HttpClientErrorException e) {
+                response = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
             }
-            return response.getBody();
-        } catch (HttpClientErrorException e) {
-            span.setAttribute("http.status_code", e.getStatusCode().value());
-            span.setStatus(StatusCode.ERROR);
-            return e.getResponseBodyAs(TransferResponse.class);
+
+            span.setAttribute("http.status_code", response.getStatusCodeValue());
+            span.setStatus(response.getStatusCode().is2xxSuccessful() ? StatusCode.OK : StatusCode.ERROR);
+
+            return response;
         } catch (Exception e) {
             span.recordException(e);
             span.setStatus(StatusCode.ERROR);
-            throw new RuntimeException("Error performing transfer: " + e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         } finally {
             span.end();
         }
