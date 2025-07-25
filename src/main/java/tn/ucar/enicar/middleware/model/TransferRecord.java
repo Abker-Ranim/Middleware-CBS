@@ -11,7 +11,16 @@ public class TransferRecord {
     private String id; // Clé primaire générée par MongoDB
     private String fromAccountId;
     private String toAccountId;
+    private double amount;
     private String status;
     private double fromBalance;
     private double toBalance;
+
+    public TransferRecord() {}
+
+    public TransferRecord(String fromAccountId, String toAccountId, double amount) {
+        this.fromAccountId = fromAccountId;
+        this.toAccountId = toAccountId;
+        this.amount = amount;
+    }
 }
