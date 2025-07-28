@@ -1,5 +1,4 @@
 package tn.ucar.enicar.middleware.config;
-
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.data.StatusData;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tn.ucar.enicar.middleware.model.TraceRecord;
 import tn.ucar.enicar.middleware.repository.TraceRecordRepository;
-
 import java.time.Instant;
 import java.util.Collection;
 

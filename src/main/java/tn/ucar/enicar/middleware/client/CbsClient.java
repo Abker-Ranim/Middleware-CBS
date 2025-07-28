@@ -1,5 +1,4 @@
 package tn.ucar.enicar.middleware.client;
-
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -9,7 +8,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import tn.ucar.enicar.middleware.model.TransferRecord;
 import tn.ucar.enicar.middleware.model.TransferRequest;
 
 @Component
