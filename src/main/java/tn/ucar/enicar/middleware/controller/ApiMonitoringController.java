@@ -48,7 +48,7 @@ public class ApiMonitoringController {
                         .collect(Collectors.toList());
                 evolutionData = filtered24h.stream()
                         .collect(Collectors.groupingBy(
-                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.HOURS).toString(),
+                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.HOURS),
                                 Collectors.collectingAndThen(
                                         Collectors.toList(),
                                         list -> {
@@ -56,14 +56,18 @@ public class ApiMonitoringController {
                                                 return new HashMap<String, Object>();
                                             }
                                             Map<String, Object> dataPoint = new HashMap<>();
-                                            dataPoint.put("time", LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault()).toString());
-                                            dataPoint.put("success", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
-                                            dataPoint.put("errors", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
+                                            LocalDateTime time = LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault());
+                                            dataPoint.put("time", time.toString());
+                                            dataPoint.put("success", list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
+                                            dataPoint.put("errors", list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
                                             dataPoint.put("total", (long) list.size());
                                             return dataPoint;
                                         }
                                 )
-                        )).values().stream()
+                        )).entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey()) // Trie par LocalDateTime
+                        .map(Map.Entry::getValue)
+                        .filter(map -> !map.isEmpty()) // Supprime les maps vides
                         .map(map -> (Map<String, Object>) map)
                         .collect(Collectors.toList());
                 break;
@@ -74,7 +78,7 @@ public class ApiMonitoringController {
                         .collect(Collectors.toList());
                 evolutionData = filtered7d.stream()
                         .collect(Collectors.groupingBy(
-                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS).toString(),
+                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS),
                                 Collectors.collectingAndThen(
                                         Collectors.toList(),
                                         list -> {
@@ -82,14 +86,18 @@ public class ApiMonitoringController {
                                                 return new HashMap<String, Object>();
                                             }
                                             Map<String, Object> dataPoint = new HashMap<>();
-                                            dataPoint.put("time", LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault()).toString());
-                                            dataPoint.put("success", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
-                                            dataPoint.put("errors", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
+                                            LocalDateTime time = LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault());
+                                            dataPoint.put("time", time.toString());
+                                            dataPoint.put("success", list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
+                                            dataPoint.put("errors", list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
                                             dataPoint.put("total", (long) list.size());
                                             return dataPoint;
                                         }
                                 )
-                        )).values().stream()
+                        )).entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey()) // Trie par LocalDateTime
+                        .map(Map.Entry::getValue)
+                        .filter(map -> !map.isEmpty())
                         .map(map -> (Map<String, Object>) map)
                         .collect(Collectors.toList());
                 break;
@@ -100,7 +108,7 @@ public class ApiMonitoringController {
                         .collect(Collectors.toList());
                 evolutionData = filtered30d.stream()
                         .collect(Collectors.groupingBy(
-                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS).toString(),
+                                tr -> LocalDateTime.ofInstant(tr.getStartTime(), ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS),
                                 Collectors.collectingAndThen(
                                         Collectors.toList(),
                                         list -> {
@@ -108,14 +116,18 @@ public class ApiMonitoringController {
                                                 return new HashMap<String, Object>();
                                             }
                                             Map<String, Object> dataPoint = new HashMap<>();
-                                            dataPoint.put("time", LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault()).toString());
-                                            dataPoint.put("success", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
-                                            dataPoint.put("errors", (long) list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
+                                            LocalDateTime time = LocalDateTime.ofInstant(list.get(0).getStartTime(), ZoneId.systemDefault());
+                                            dataPoint.put("time", time.toString());
+                                            dataPoint.put("success", list.stream().filter(record -> record.getHttpStatusCode() >= 200 && record.getHttpStatusCode() < 300).count());
+                                            dataPoint.put("errors", list.stream().filter(record -> record.getHttpStatusCode() >= 400).count());
                                             dataPoint.put("total", (long) list.size());
                                             return dataPoint;
                                         }
                                 )
-                        )).values().stream()
+                        )).entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey()) // Trie par LocalDateTime
+                        .map(Map.Entry::getValue)
+                        .filter(map -> !map.isEmpty())
                         .map(map -> (Map<String, Object>) map)
                         .collect(Collectors.toList());
                 break;

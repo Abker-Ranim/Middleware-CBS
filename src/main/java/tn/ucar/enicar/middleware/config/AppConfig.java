@@ -20,6 +20,7 @@ public class AppConfig {
 
     @Bean
     public RestTemplate restTemplate() {
+
         return new RestTemplate();
     }
 
@@ -30,6 +31,7 @@ public class AppConfig {
 
         Resource resource = Resource.getDefault()
                 .merge(Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), "middleware-api")));
+        //Crée un fournisseur de traceur avec l’exportateur MongoDB
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
                 .setResource(resource)
                 .addSpanProcessor(BatchSpanProcessor.builder(mongoExporter).build())
