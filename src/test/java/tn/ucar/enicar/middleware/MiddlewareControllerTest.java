@@ -41,8 +41,8 @@ class MiddlewareControllerTest {
     @BeforeEach
     void setUp() {
         transferRequest = new TransferRequest();
-        transferRequest.setFromAccountId("A123");
-        transferRequest.setToAccountId("B456");
+        transferRequest.setFromAccountId("1001");
+        transferRequest.setToAccountId("1010");
         transferRequest.setAmount(100.0);
     }
 
